@@ -1,0 +1,1059 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agência de Viagens - Processamento de Documentos</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary-color: #6366f1;
+            --primary-dark: #4f46e5;
+            --secondary-color: #8b5cf6;
+            --success-color: #10b981;
+            --danger-color: #ef4444;
+            --gray-light: #f3f4f6;
+            --gray-medium: #e5e7eb;
+            --gray-dark: #374151;
+            --text-primary: #1f2937;
+            --text-secondary: #6b7280;
+            --border-radius: 12px;
+            --transition: all 0.3s ease;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #e9ecef 100%);
+            min-height: 100vh;
+            color: var(--text-primary);
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        /* Progress Bar */
+        .progress-container {
+            margin-bottom: 40px;
+            position: relative;
+        }
+
+        .progress-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: relative;
+            padding: 0 10px;
+        }
+
+        .progress-bar::before {
+            content: '';
+            position: absolute;
+            top: 20px;
+            left: 30px;
+            right: 30px;
+            height: 2px;
+            background: var(--gray-medium);
+            z-index: 0;
+        }
+
+        .progress-step {
+            position: relative;
+            z-index: 1;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .progress-circle {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: white;
+            border: 2px solid var(--gray-medium);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-secondary);
+            font-weight: 600;
+            transition: var(--transition);
+            margin-bottom: 8px;
+        }
+
+        .progress-step.completed .progress-circle {
+            background: var(--success-color);
+            border-color: var(--success-color);
+            color: white;
+        }
+
+        .progress-step.active .progress-circle {
+            background: var(--primary-color);
+            border-color: var(--primary-color);
+            color: white;
+            box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
+        }
+
+        .progress-step.active::after {
+            content: '';
+            position: absolute;
+            top: -12px;
+            width: 100%;
+            height: 2px;
+            background: var(--primary-color);
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .progress-label {
+            font-size: 11px;
+            color: var(--text-secondary);
+            text-align: center;
+            max-width: 50px;
+        }
+
+        /* Main Panel */
+        .panel {
+            background: white;
+            border-radius: var(--border-radius);
+            padding: 32px 24px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.07), 0 10px 13px rgba(0, 0, 0, 0.1);
+            display: none;
+            animation: fadeIn 0.4s ease-in-out;
+        }
+
+        .panel.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .panel-title {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 8px;
+        }
+
+        .panel-subtitle {
+            font-size: 14px;
+            color: var(--text-secondary);
+            margin-bottom: 24px;
+        }
+
+        /* Step 1: Passport ID */
+        .passport-input-group {
+            margin-bottom: 24px;
+        }
+
+        .input-label {
+            display: block;
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text-primary);
+            margin-bottom: 8px;
+        }
+
+        .input-wrapper {
+            position: relative;
+        }
+
+        #passportInput {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid var(--gray-medium);
+            border-radius: 8px;
+            font-size: 16px;
+            transition: var(--transition);
+            font-weight: 600;
+            letter-spacing: 1px;
+        }
+
+        #passportInput:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+        }
+
+        .char-counter {
+            position: absolute;
+            right: 16px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 13px;
+            color: var(--text-secondary);
+            font-weight: 600;
+        }
+
+        .continue-btn {
+            width: 100%;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .continue-btn.disabled {
+            background: var(--gray-medium);
+            color: var(--text-secondary);
+            cursor: not-allowed;
+        }
+
+        .continue-btn.active {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+        }
+
+        .continue-btn.active:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(99, 102, 241, 0.4);
+        }
+
+        /* Step 2: Passport Photo */
+        .camera-instruction {
+            font-size: 14px;
+            color: var(--text-secondary);
+            margin-bottom: 20px;
+        }
+
+        .camera-container {
+            position: relative;
+            width: 100%;
+            aspect-ratio: 1;
+            background: var(--gray-light);
+            border-radius: var(--border-radius);
+            overflow: hidden;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 3px solid transparent;
+        }
+
+        .camera-frame {
+            position: absolute;
+            top: 16px;
+            left: 16px;
+            right: 16px;
+            bottom: 16px;
+            border: 3px solid white;
+            border-radius: 8px;
+            box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.1);
+            pointer-events: none;
+        }
+
+        video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transform: scaleX(-1);
+        }
+
+        canvas {
+            display: none;
+        }
+
+        .image-preview {
+            width: 100%;
+            height: auto;
+            border-radius: 8px;
+            object-fit: cover;
+        }
+
+        .capture-button {
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            background: var(--gray-dark);
+            border: none;
+            cursor: pointer;
+            transition: var(--transition);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+            position: relative;
+            z-index: 10;
+        }
+
+        .capture-button:hover {
+            transform: scale(1.05);
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
+        }
+
+        .capture-button::after {
+            content: '';
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            background: white;
+            border-radius: 50%;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+
+        .capture-button:active {
+            transform: scale(0.95);
+        }
+
+        .button-group {
+            display: flex;
+            gap: 12px;
+            margin-top: 20px;
+        }
+
+        .button-group button {
+            flex: 1;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            text-transform: uppercase;
+        }
+
+        .btn-secondary {
+            background: var(--gray-light);
+            color: var(--text-primary);
+            border: 2px solid var(--gray-medium);
+        }
+
+        .btn-secondary:hover {
+            background: var(--gray-medium);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(99, 102, 241, 0.4);
+        }
+
+        /* Step 3-4: Facial Recognition */
+        .instructions-list {
+            background: var(--gray-light);
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 24px;
+        }
+
+        .instructions-list ol {
+            list-style-position: inside;
+            color: var(--text-secondary);
+            line-height: 1.8;
+        }
+
+        .instructions-list li {
+            font-size: 13px;
+            margin-bottom: 8px;
+        }
+
+        .instructions-list li:last-child {
+            margin-bottom: 0;
+        }
+
+        .facial-scan-container {
+            width: 100%;
+            aspect-ratio: 1;
+            background: var(--gray-light);
+            border-radius: var(--border-radius);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            margin-bottom: 20px;
+            position: relative;
+        }
+
+        .facial-mask {
+            position: absolute;
+            width: 240px;
+            height: 240px;
+            border: 4px solid var(--primary-color);
+            border-radius: 50%;
+            box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.6);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            font-weight: 600;
+            color: white;
+            text-align: center;
+        }
+
+        .facial-mask.hold-still {
+            background: rgba(0, 0, 0, 0.8);
+        }
+
+        .loading-circle {
+            width: 80px;
+            height: 80px;
+            border: 4px solid rgba(255, 255, 255, 0.2);
+            border-top-color: var(--success-color);
+            border-radius: 50%;
+            animation: spin 1.5s linear infinite;
+            position: absolute;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Step 5: Download */
+        .document-card {
+            background: var(--gray-light);
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 24px;
+            display: flex;
+            gap: 16px;
+            align-items: flex-start;
+        }
+
+        .document-thumbnail {
+            width: 80px;
+            height: 80px;
+            background: white;
+            border-radius: 6px;
+            overflow: hidden;
+            flex-shrink: 0;
+            border: 2px solid var(--gray-medium);
+        }
+
+        .document-thumbnail img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .document-info {
+            flex: 1;
+        }
+
+        .document-name {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 4px;
+        }
+
+        .document-size {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .download-btn-large {
+            width: 100%;
+            padding: 14px 20px;
+            background: white;
+            border: 2px solid var(--gray-medium);
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-primary);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 16px;
+            transition: var(--transition);
+        }
+
+        .download-btn-large:hover {
+            border-color: var(--primary-color);
+            background: rgba(99, 102, 241, 0.05);
+        }
+
+        .download-icon {
+            width: 20px;
+            height: 20px;
+            margin-right: 12px;
+        }
+
+        .file-count {
+            font-size: 12px;
+            color: var(--text-secondary);
+            background: var(--gray-light);
+            padding: 4px 8px;
+            border-radius: 4px;
+        }
+
+        .btn-large-primary {
+            width: 100%;
+            padding: 14px 24px;
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            text-transform: uppercase;
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+            transition: var(--transition);
+            margin-bottom: 12px;
+        }
+
+        .btn-large-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(99, 102, 241, 0.4);
+        }
+
+        .btn-large-secondary {
+            width: 100%;
+            padding: 14px 24px;
+            background: white;
+            color: var(--text-primary);
+            border: 2px solid var(--gray-medium);
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            text-transform: uppercase;
+            transition: var(--transition);
+        }
+
+        .btn-large-secondary:hover {
+            border-color: var(--primary-color);
+            background: rgba(99, 102, 241, 0.05);
+        }
+
+        /* Loading State */
+        .loading {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 20px;
+        }
+
+        .spinner {
+            width: 60px;
+            height: 60px;
+            border: 4px solid var(--gray-medium);
+            border-top-color: var(--primary-color);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        .loading-text {
+            font-size: 16px;
+            color: var(--text-secondary);
+            text-align: center;
+        }
+
+        /* Error State */
+        .error-message {
+            background: rgba(239, 68, 68, 0.1);
+            border: 2px solid var(--danger-color);
+            border-radius: 8px;
+            padding: 12px 16px;
+            color: var(--danger-color);
+            font-size: 14px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .error-message.show {
+            display: block;
+        }
+
+        /* Responsive */
+        @media (max-width: 480px) {
+            body {
+                padding: 12px;
+            }
+
+            .panel {
+                padding: 24px 16px;
+            }
+
+            .progress-bar {
+                padding: 0 5px;
+            }
+
+            .progress-bar::before {
+                left: 20px;
+                right: 20px;
+            }
+
+            .progress-circle {
+                width: 36px;
+                height: 36px;
+                font-size: 14px;
+            }
+
+            .progress-label {
+                font-size: 10px;
+            }
+
+            .panel-title {
+                font-size: 20px;
+            }
+
+            .capture-button {
+                width: 60px;
+                height: 60px;
+            }
+
+            .facial-mask {
+                width: 180px;
+                height: 180px;
+            }
+
+            .button-group {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Progress Bar -->
+        <div class="progress-container">
+            <div class="progress-bar">
+                <div class="progress-step active" data-step="1">
+                    <div class="progress-circle">1</div>
+                    <div class="progress-label">ID Passaporte</div>
+                </div>
+                <div class="progress-step" data-step="2">
+                    <div class="progress-circle">2</div>
+                    <div class="progress-label">Foto</div>
+                </div>
+                <div class="progress-step" data-step="3">
+                    <div class="progress-circle">3</div>
+                    <div class="progress-label">Rosto</div>
+                </div>
+                <div class="progress-step" data-step="4">
+                    <div class="progress-circle">4</div>
+                    <div class="progress-label">Captura</div>
+                </div>
+                <div class="progress-step" data-step="5">
+                    <div class="progress-circle">5</div>
+                    <div class="progress-label">Download</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Step 1: Passport ID -->
+        <div class="panel active" data-step="1">
+            <h1 class="panel-title">Passport ID</h1>
+            <p class="panel-subtitle">Digite o número do seu passaporte</p>
+            
+            <div class="error-message" id="errorMessage"></div>
+            
+            <div class="passport-input-group">
+                <label class="input-label">Número do Passaporte</label>
+                <div class="input-wrapper">
+                    <input 
+                        type="text" 
+                        id="passportInput" 
+                        placeholder="Ex: N16E7272"
+                        maxlength="10"
+                        autocomplete="off"
+                    >
+                    <span class="char-counter"><span id="charCount">0</span>/10</span>
+                </div>
+            </div>
+
+            <button class="continue-btn disabled" id="continueBtn1">Continue</button>
+        </div>
+
+        <!-- Step 2: Passport Photo -->
+        <div class="panel" data-step="2">
+            <h1 class="panel-title">Foto para Passaporte</h1>
+            <p class="panel-subtitle">Tire uma foto nítida do passaporte</p>
+
+            <div class="camera-instruction">Tire uma foto nítida do passaporte</div>
+            
+            <div class="camera-container">
+                <video id="passportVideo" autoplay playsinline></video>
+                <canvas id="passportCanvas"></canvas>
+                <img id="passportPreview" class="image-preview" style="display: none;">
+                <div class="camera-frame"></div>
+            </div>
+
+            <div style="text-align: center; margin-bottom: 20px;">
+                <button class="capture-button" id="capturePassportBtn"></button>
+            </div>
+
+            <div class="button-group" id="passportButtonGroup" style="display: none;">
+                <button class="btn-secondary" id="retakePassportBtn">Retomar</button>
+                <button class="btn-primary" id="acceptPassportBtn">Aceitar e continuar</button>
+            </div>
+        </div>
+
+        <!-- Step 3: Prepare for Facial Scan -->
+        <div class="panel" data-step="3">
+            <h1 class="panel-title">Prepare-se para o Escaneamento Facial</h1>
+            <p class="panel-subtitle">Siga as instruções abaixo</p>
+
+            <div class="instructions-list">
+                <ol>
+                    <li>Encontre um lugar bem iluminado</li>
+                    <li>Remova óculos ou acessórios</li>
+                    <li>Posicione seu rosto centralmente na câmera</li>
+                    <li>Mantenha uma expressão neutra</li>
+                </ol>
+            </div>
+
+            <button class="continue-btn active" id="continueBtn3">Começar Escaneamento</button>
+        </div>
+
+        <!-- Step 4: Facial Scan -->
+        <div class="panel" data-step="4">
+            <div class="facial-scan-container">
+                <video id="facialVideo" autoplay playsinline style="width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1);"></video>
+                <canvas id="facialCanvas" style="display: none;"></canvas>
+                <div class="facial-mask" id="facialMask">Look at the camera</div>
+                <div class="loading-circle" id="loadingCircle" style="display: none;"></div>
+            </div>
+        </div>
+
+        <!-- Step 5: Download -->
+        <div class="panel" data-step="5">
+            <h1 class="panel-title">Seus Documentos</h1>
+            <p class="panel-subtitle">Todos os arquivos estão prontos. Faça o download deles como um único arquivo ZIP.</p>
+
+            <div class="document-card">
+                <div class="document-thumbnail">
+                    <img id="downloadPreview" src="" alt="Passaporte">
+                </div>
+                <div class="document-info">
+                    <div class="document-name">passaporte.jpg</div>
+                    <div class="document-size" id="fileSize">Processando...</div>
+                </div>
+            </div>
+
+            <button class="download-btn-large" id="downloadListBtn">
+                <span style="display: flex; align-items: center;">
+                    <svg class="download-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                        <polyline points="7 10 12 15 17 10"></polyline>
+                        <line x1="12" y1="15" x2="12" y2="3"></line>
+                    </svg>
+                    <span id="downloadFileName">N16E7272.zip</span>
+                </span>
+                <span class="file-count">3 arquivos</span>
+            </button>
+
+            <button class="btn-large-primary" id="downloadZipBtn">Baixar ZIP</button>
+            <button class="btn-large-secondary" id="finishBtn">Terminar</button>
+        </div>
+    </div>
+
+    <script>
+        class DocumentProcessor {
+            constructor() {
+                this.currentStep = 1;
+                this.passportNumber = '';
+                this.passportImage = null;
+                this.selfieImage = null;
+                this.zipFilename = '';
+                this.facialScanStarted = false;
+                this.facialScanDuration = 3000; // 3 segundos
+                
+                this.initializeEventListeners();
+            }
+
+            initializeEventListeners() {
+                // Step 1: Passport ID
+                document.getElementById('passportInput').addEventListener('input', (e) => this.updatePassportInput(e));
+                document.getElementById('continueBtn1').addEventListener('click', () => this.goToStep(2));
+
+                // Step 2: Passport Photo
+                document.getElementById('capturePassportBtn').addEventListener('click', () => this.capturePassportPhoto());
+                document.getElementById('retakePassportBtn').addEventListener('click', () => this.retakePassportPhoto());
+                document.getElementById('acceptPassportBtn').addEventListener('click', () => this.goToStep(3));
+
+                // Step 3: Facial Preparation
+                document.getElementById('continueBtn3').addEventListener('click', () => this.startFacialScan());
+
+                // Step 5: Download
+                document.getElementById('downloadListBtn').addEventListener('click', () => this.startDownload());
+                document.getElementById('downloadZipBtn').addEventListener('click', () => this.startDownload());
+                document.getElementById('finishBtn').addEventListener('click', () => this.finish());
+            }
+
+            updatePassportInput(e) {
+                const value = e.target.value.toUpperCase();
+                e.target.value = value;
+                this.passportNumber = value;
+
+                const charCount = value.length;
+                document.getElementById('charCount').textContent = charCount;
+
+                const btn = document.getElementById('continueBtn1');
+                if (charCount >= 8 && charCount <= 10) {
+                    btn.classList.remove('disabled');
+                    btn.classList.add('active');
+                } else {
+                    btn.classList.add('disabled');
+                    btn.classList.remove('active');
+                }
+            }
+
+            async goToStep(step) {
+                if (step === 2) {
+                    await this.initializePassportCamera();
+                } else if (step === 4) {
+                    await this.initializeFacialCamera();
+                }
+                this.showStep(step);
+            }
+
+            async initializePassportCamera() {
+                try {
+                    const stream = await navigator.mediaDevices.getUserMedia({
+                        video: { facingMode: 'environment' }
+                    });
+                    const video = document.getElementById('passportVideo');
+                    video.srcObject = stream;
+                } catch (error) {
+                    this.showError('Não foi possível acessar a câmera. Verifique as permissões.');
+                }
+            }
+
+            capturePassportPhoto() {
+                const video = document.getElementById('passportVideo');
+                const canvas = document.getElementById('passportCanvas');
+                const context = canvas.getContext('2d');
+
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
+                context.drawImage(video, 0, 0);
+
+                // Converte para blob
+                canvas.toBlob((blob) => {
+                    this.passportImage = blob;
+                    const url = URL.createObjectURL(blob);
+                    
+                    document.getElementById('passportPreview').src = url;
+                    document.getElementById('passportPreview').style.display = 'block';
+                    document.getElementById('passportVideo').style.display = 'none';
+                    document.getElementById('capturePassportBtn').style.display = 'none';
+                    document.getElementById('passportButtonGroup').style.display = 'flex';
+
+                    // Também usar como preview no step 5
+                    document.getElementById('downloadPreview').src = url;
+                });
+            }
+
+            retakePassportPhoto() {
+                document.getElementById('passportPreview').style.display = 'none';
+                document.getElementById('passportVideo').style.display = 'block';
+                document.getElementById('capturePassportBtn').style.display = 'block';
+                document.getElementById('passportButtonGroup').style.display = 'none';
+                this.passportImage = null;
+            }
+
+            async initializeFacialCamera() {
+                try {
+                    const stream = await navigator.mediaDevices.getUserMedia({
+                        video: { facingMode: 'user' }
+                    });
+                    const video = document.getElementById('facialVideo');
+                    video.srcObject = stream;
+
+                    // Inicia escaneamento automático
+                    setTimeout(() => this.performFacialScan(), 500);
+                } catch (error) {
+                    this.showError('Não foi possível acessar a câmera. Verifique as permissões.');
+                }
+            }
+
+            performFacialScan() {
+                const mask = document.getElementById('facialMask');
+                const circle = document.getElementById('loadingCircle');
+                const video = document.getElementById('facialVideo');
+
+                // Fase 1: Look at the camera
+                mask.textContent = 'Look at the camera';
+                mask.classList.remove('hold-still');
+                circle.style.display = 'none';
+
+                setTimeout(() => {
+                    // Fase 2: Hold still
+                    mask.textContent = 'Hold still';
+                    mask.classList.add('hold-still');
+                    circle.style.display = 'block';
+
+                    setTimeout(() => {
+                        // Captura a imagem facial
+                        this.captureFacialImage();
+                    }, this.facialScanDuration);
+                }, 2000);
+            }
+
+            captureFacialImage() {
+                const video = document.getElementById('facialVideo');
+                const canvas = document.getElementById('facialCanvas');
+                const context = canvas.getContext('2d');
+
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
+                context.scale(-1, 1);
+                context.drawImage(video, -canvas.width, 0);
+
+                canvas.toBlob((blob) => {
+                    this.selfieImage = blob;
+                    this.showProcessingMessage();
+                });
+            }
+
+            showProcessingMessage() {
+                const mask = document.getElementById('facialMask');
+                const circle = document.getElementById('loadingCircle');
+                const video = document.getElementById('facialVideo');
+
+                video.style.display = 'none';
+                mask.textContent = 'Done, finishing up...';
+                mask.classList.add('hold-still');
+
+                setTimeout(() => {
+                    this.processDocuments();
+                }, 2000);
+            }
+
+            async processDocuments() {
+                if (!this.passportImage || !this.selfieImage) {
+                    this.showError('Erro ao capturar imagens');
+                    return;
+                }
+
+                const formData = new FormData();
+                formData.append('passport_number', this.passportNumber);
+                formData.append('passport_image', this.passportImage, 'passaporte.jpg');
+                formData.append('selfie_image', this.selfieImage, 'selfie.jpg');
+
+                try {
+                    const response = await fetch('/api/process-documents', {
+                        method: 'POST',
+                        body: formData
+                    });
+
+                    if (!response.ok) throw new Error('Erro ao processar documentos');
+
+                    const data = await response.json();
+                    this.zipFilename = data.zip_filename;
+                    document.getElementById('downloadFileName').textContent = this.zipFilename;
+
+                    this.showStep(5);
+                } catch (error) {
+                    this.showError('Erro ao processar documentos: ' + error.message);
+                }
+            }
+
+            async startDownload() {
+                if (!this.zipFilename) {
+                    this.showError('Arquivo não disponível');
+                    return;
+                }
+
+                try {
+                    const response = await fetch(`/api/download/${this.zipFilename}`);
+                    if (!response.ok) throw new Error('Erro ao baixar arquivo');
+
+                    const blob = await response.blob();
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = this.zipFilename;
+                    a.click();
+                    URL.revokeObjectURL(url);
+                } catch (error) {
+                    this.showError('Erro ao baixar arquivo: ' + error.message);
+                }
+            }
+
+            finish() {
+                // Reset para novo usuário
+                this.currentStep = 1;
+                this.passportNumber = '';
+                this.passportImage = null;
+                this.selfieImage = null;
+                this.zipFilename = '';
+
+                document.getElementById('passportInput').value = '';
+                document.getElementById('charCount').textContent = '0';
+
+                // Para streams de vídeo
+                const videos = document.querySelectorAll('video');
+                videos.forEach(video => {
+                    if (video.srcObject) {
+                        video.srcObject.getTracks().forEach(track => track.stop());
+                    }
+                });
+
+                this.showStep(1);
+            }
+
+            showStep(step) {
+                // Esconde todos os painéis
+                document.querySelectorAll('.panel').forEach(panel => {
+                    panel.classList.remove('active');
+                });
+
+                // Mostra painel do step atual
+                document.querySelector(`[data-step="${step}"]`).classList.add('active');
+
+                // Atualiza progress bar
+                document.querySelectorAll('.progress-step').forEach(stepEl => {
+                    const stepNum = parseInt(stepEl.dataset.step);
+                    stepEl.classList.remove('active', 'completed');
+
+                    if (stepNum < step) {
+                        stepEl.classList.add('completed');
+                    } else if (stepNum === step) {
+                        stepEl.classList.add('active');
+                    }
+                });
+
+                this.currentStep = step;
+            }
+
+            showError(message) {
+                const errorEl = document.getElementById('errorMessage');
+                errorEl.textContent = message;
+                errorEl.classList.add('show');
+                setTimeout(() => errorEl.classList.remove('show'), 5000);
+            }
+        }
+
+        // Inicia aplicação
+        document.addEventListener('DOMContentLoaded', () => {
+            new DocumentProcessor();
+        });
+    </script>
+</body>
+</html>
