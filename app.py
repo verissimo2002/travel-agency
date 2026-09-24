@@ -16,6 +16,9 @@ import base64
 import io
 import zipfile
 import pyminizip
+from dotenv import load_dotenv
+
+load_dotenv()  # lê o ficheiro .env local (nunca vai para o Git)
 
 # Configuração
 app = FastAPI(title="Travel Agency API")
@@ -37,8 +40,14 @@ TEMP_DIR = Path("temp")
 UPLOAD_DIR.mkdir(exist_ok=True)
 TEMP_DIR.mkdir(exist_ok=True)
 
-# Senha fixa para ZIP
-ZIP_PASSWORD = "Angola2019@"
+# Senha para proteger os ZIPs — lida do ficheiro .env local (nunca commitada ao Git).
+# Defina ZIP_PASSWORD no seu .env; se não definir, usa um valor de desenvolvimento.
+ZIP_PASSWORD = os.getenv("ZIP_PASSWORD")
+if not ZIP_PASSWORD:
+    raise RuntimeError(
+        "ZIP_PASSWORD não definida. Crie um ficheiro .env (veja .env.example) "
+        "com ZIP_PASSWORD=a-sua-senha antes de iniciar o servidor."
+    )
 
 
 def init_database():
@@ -214,7 +223,7 @@ async def startup_event():
     print("✓ Sistema iniciado")
     print(f"✓ Banco de dados: {DATABASE_FILE}")
     print(f"✓ Diretório de uploads: {UPLOAD_DIR}")
-    print(f"✓ Senha de ZIP: {ZIP_PASSWORD}")
+    print("✓ Senha de ZIP: configurada via variável de ambiente (não exibida nos logs)")
 
 
 if __name__ == "__main__":
